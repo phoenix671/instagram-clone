@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Clone</title>
+    <!-- Link CSS and FontAwesome -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- The Top Bar -->
+        <header class="app-header" style="display: none;">
+            <h2 id="app-title">Instagram</h2>
+            <i class="fa-regular fa-paper-plane"></i>
+        </header>
+
+        <!-- VIEW 0: LOGIN -->
+        <main id="login-view" class="view active">
+            <div class="login-container">
+                <h1 class="login-title">Instagram</h1>
+                <p class="login-subtitle">Private Web App Edition</p>
+                <div id="login-error" class="login-error"></div>
+                <input type="text" id="login-username" placeholder="Username" class="login-input">
+                <input type="password" id="login-password" placeholder="Password" class="login-input">
+                <button id="login-btn" class="login-btn">Log In</button>
+            </div>
+        </main>
+
+        <!-- VIEW 1: HOME FEED -->
+        <main id="home-view" class="view">
+            <div id="feed">
+                <!-- Posts will be generated here dynamically -->
+            </div>
+        </main>
+        
+        <!-- NEW VIEW: REELS -->
+        <main id="reels-view" class="view">
+            <!-- Reels will be injected here and naturally scroll-snap! -->
+        </main>
+
+        <!-- VIEW 3: NEW UPLOAD (Updated!) -->
+        <main id="add-post-view" class="view">
+            <div class="new-post-container">
+                <h3>Create New Upload</h3>
+                
+                <!-- NEW: Dropdown to select Photo or Reel -->
+                <select id="post-type" class="input-field" style="margin-bottom: 5px;">
+                    <option value="photo">Post a Photo to Feed</option>
+                    <option value="reel">Post a Video to Reels</option>
+                </select>
+
+                <input type="file" id="media-upload" accept="image/*,video/*" class="input-field" style="padding: 10px; background: white;">
+                <div id="upload-status" style="font-size: 14px; color: #0095f6; font-weight: bold; margin-bottom: 5px; display: none;">Uploading to Cloudinary... ☁️</div>
+                <div class="image-preview" id="image-preview">
+                    <span>Preview Placeholder</span>
+                </div>
+                <textarea id="new-post-caption" placeholder="Write a caption..." class="input-field caption-field"></textarea>
+                <button id="share-btn" class="primary-btn">Share</button>
+            </div>
+        </main>
+
+        <!-- VIEW 4: PROFILE -->
+        <main id="profile-view" class="view">
+            <div class="profile-header">
+                <div>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" class="profile-avatar">
+                </div>
+                <div class="profile-stats">
+                    <div class="stat"><span id="profile-post-count">0</span><br>posts</div>
+                    <div class="stat"><span>1,204</span><br>followers</div>
+                    <div class="stat"><span>42</span><br>following</div>
+                </div>
+            </div>
+            <div class="profile-bio">
+                <span class="bio-name">first_semester_coder</span>
+                <p>Learning Full-Stack Engineering 💻<br>Building an Instagram Clone!</p>
+            </div>
+            <div class="profile-grid" id="profile-grid">
+                <!-- Profile pictures will be generated here -->
+            </div>
+        </main>
+
+        <!-- The Navigation Bar (Now with 4 Icons!) -->
+        <nav class="bottom-nav" style="display: none;">
+            <i class="fa-solid fa-house nav-icon active" data-target="home-view"></i>
+            <i class="fa-solid fa-clapperboard nav-icon" data-target="reels-view"></i>
+            <i class="fa-regular fa-square-plus nav-icon" data-target="add-post-view"></i>
+            <i class="fa-regular fa-user nav-icon" data-target="profile-view"></i>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
