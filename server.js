@@ -73,6 +73,14 @@ const initDb = async () => {
             caption TEXT
         )`);
 
+        await pool.query(`CREATE TABLE IF NOT EXISTS comments (
+            id SERIAL PRIMARY KEY,
+            post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+            username TEXT,
+            text TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         const { rows } = await pool.query("SELECT COUNT(*) as count FROM reels");
         if (parseInt(rows[0].count) === 0) {
             console.log("Adding starter Reels into the vault...");
@@ -137,7 +145,12 @@ app.post('/api/login', async (req, res) => {
 // Route A: Get all posts
 app.get('/api/posts', authenticateToken, async (req, res) => {
     try {
-        const { rows } = await pool.query("SELECT * FROM posts");
+        // Fetch posts with comment counts
+        const { rows } = await pool.query(`
+            SELECT p.*, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count 
+            FROM posts p 
+            ORDER BY id DESC
+        `);
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -148,8 +161,42 @@ app.get('/api/posts', authenticateToken, async (req, res) => {
 app.post('/api/posts/:id/like', authenticateToken, async (req, res) => {
     const { isLiked, likes } = req.body;
     try {
-        await pool.query("UPDATE posts SET isLiked = $1, likes = $2 WHERE id = $3", [isLiked, likes, req.params.id]);
+        await pool.query("UPDATE posts SET isLiked = $1, likes = $2 WHERE id = $3", [isLiked ? 1 : 0, likes, req.params.id]);
         res.json({ message: "Post updated successfully!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route B2: Get comments for a post
+app.get('/api/posts/:id/comments', authenticateToken, async (req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT * FROM comments WHERE post_id = $1 ORDER BY created_at ASC", [req.params.id]);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route B3: Add a comment
+app.post('/api/posts/:id/comments', authenticateToken, async (req, res) => {
+    const { username, text } = req.body;
+    try {
+        const result = await pool.query(
+            "INSERT INTO comments (post_id, username, text) VALUES ($1, $2, $3) RETURNING id, created_at",
+            [req.params.id, username, text]
+        );
+        res.json({ message: "Comment added!", id: result.rows[0].id, created_at: result.rows[0].created_at });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route B4: Get posts for a specific user (Profile)
+app.get('/api/users/:username/posts', authenticateToken, async (req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT * FROM posts WHERE username = $1 ORDER BY id DESC", [req.params.username]);
+        res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
