@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { StoryViewer, type Story } from './StoryViewer';
 import { CreateStoryModal } from './CreateStoryModal';
 
