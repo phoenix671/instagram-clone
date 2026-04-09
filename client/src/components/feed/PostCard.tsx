@@ -59,21 +59,21 @@ export function PostCard({ post }: { post: PostProps }) {
       </div>
 
       {/* Post Media - Soft rounded styling approved in plan */}
-      <div 
-        className="w-full aspect-square bg-black overflow-hidden relative sm:rounded-none group cursor-pointer" 
+      <div
+        className="w-full aspect-square bg-black overflow-hidden relative sm:rounded-none group cursor-pointer"
         onDoubleClick={onDoubleTap}
       >
-        <img 
-          src={post.image} 
-          alt="Post content" 
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" 
+        <img
+          src={post.image}
+          alt="Post content"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
-        
+
         {/* Heart Burst Double Tap Animation */}
         {showHeartBurst && (
           <div className="absolute inset-0 flex items-center justify-center z-10 select-none pointer-events-none">
-            <Heart 
-              className="w-24 h-24 text-white fill-white drop-shadow-2xl animate-in zoom-in spin-in-12 duration-300 fade-out-0 fade-in-100" 
+            <Heart
+              className="w-24 h-24 text-white fill-white drop-shadow-2xl animate-in zoom-in spin-in-12 duration-300 fade-out-0 fade-in-100"
             />
           </div>
         )}
@@ -100,7 +100,7 @@ export function PostCard({ post }: { post: PostProps }) {
 
         {/* Engagement Info */}
         <span className="font-bold text-sm block mb-1">{likes.toLocaleString()} likes</span>
-        
+
         {/* Caption */}
         <div className="text-sm mb-2 leading-relaxed">
           <span className="font-bold mr-2 cursor-pointer hover:underline">{post.user.username}</span>
@@ -111,7 +111,7 @@ export function PostCard({ post }: { post: PostProps }) {
         <button className="text-sm text-muted-foreground font-medium mb-2 hover:underline">
           View all 42 comments
         </button>
-        
+
         <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-widest font-semibold">
           {post.timeAgo}
         </div>

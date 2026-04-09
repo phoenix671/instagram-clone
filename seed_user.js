@@ -1,7 +1,13 @@
-const sqlite3 = require('sqlite3').verbose();
+require('dotenv').config();
+const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 
-const db = new sqlite3.Database('./database.sqlite');
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
 
 const args = process.argv.slice(2);
 if (args.length !== 2) {
@@ -15,37 +21,25 @@ async function seedUser() {
     try {
         const passwordHash = await bcrypt.hash(plainPassword, 10);
         
-        db.run(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            [username, passwordHash],
-            function (err) {
-                if (err) {
-                    if (err.message.includes("UNIQUE")) {
-                        console.error(`User '${username}' already exists!`);
-                    } else {
-                        console.error("Error creating user:", err.message);
-                    }
-                } else {
-                    console.log(`✅ VIP Account created successfully!`);
-                    console.log(`Username: ${username}`);
-                    console.log(`Password: ${plainPassword}`);
-                    console.log(`(Password securely hashed in DB)`);
-                }
-                
-                db.close();
-            }
+        const result = await pool.query(
+            "INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING RETURNING id",
+            [username, passwordHash]
         );
+
+        if (result.rows.length === 0) {
+            console.error(`User '${username}' already exists!`);
+        } else {
+            console.log(`✅ VIP Account created successfully!`);
+            console.log(`Username: ${username}`);
+            console.log(`Password: ${plainPassword}`);
+            console.log(`(Password securely hashed in DB)`);
+        }
+        
+        await pool.end();
     } catch (error) {
-        console.error("Failed to hash password", error);
-        db.close();
+        console.error("Failed to seed user:", error.message);
+        await pool.end();
     }
 }
 
-// Make sure users table exists before trying to insert
-db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT
-)`, () => {
-    seedUser();
-});
+seedUser();
