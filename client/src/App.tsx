@@ -7,6 +7,9 @@ import { Home, Compass, User, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FeedView } from '@/components/feed/FeedView'
 import { ReelsView } from '@/components/reels/ReelsView'
+import { CreatePostModal } from '@/components/feed/CreatePostModal'
+import { ProfileView } from '@/components/profile/ProfileView'
+import { PlusSquare } from 'lucide-react'
 
 function App() {
   const [appState, setAppState] = useState<'entry' | 'login' | 'main'>('entry')
@@ -16,6 +19,12 @@ function App() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const refreshContent = () => {
+    setRefreshKey(prev => prev + 1)
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -151,20 +160,27 @@ function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-lg mx-auto p-0 flex flex-col items-center">
-        {view === 'home' && <FeedView />}
-        {view === 'explore' && <ReelsView />}
-        {view === 'profile' && <div className="text-center mt-10 text-muted-foreground font-medium">Profile View Coming Soon</div>}
+      <main className="flex-1 w-full max-w-4xl mx-auto p-0 flex flex-col items-center">
+        {view === 'home' && <div className="max-w-lg w-full px-0"><FeedView key={`feed-${refreshKey}`} /></div>}
+        {view === 'explore' && <div className="max-w-lg w-full px-0"><ReelsView key={`reels-${refreshKey}`} /></div>}
+        {view === 'profile' && <ProfileView key={`profile-${refreshKey}`} />}
       </main>
 
       {/* Floating Action Menu from 21st.dev! */}
       <FloatingActionMenu
         options={[
           { label: "Profile", Icon: <User className="w-4 h-4" />, onClick: () => setView('profile') },
+          { label: "Create", Icon: <PlusSquare className="w-4 h-4" />, onClick: () => setIsCreateModalOpen(true) },
           { label: "Explore", Icon: <Compass className="w-4 h-4" />, onClick: () => setView('explore') },
           { label: "Home", Icon: <Home className="w-4 h-4" />, onClick: () => setView('home') },
           { label: "Logout", Icon: <Settings className="w-4 h-4" />, onClick: handleLogout },
         ]}
+      />
+
+      <CreatePostModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+        onSuccess={refreshContent}
       />
     </div>
   )

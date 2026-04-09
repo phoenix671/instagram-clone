@@ -12,30 +12,115 @@ export interface PostProps {
   likes: number;
   timeAgo: string;
   isLiked?: boolean;
+  comment_count?: number;
+}
+
+interface Comment {
+  id: number;
+  username: string;
+  text: string;
+  created_at: string;
 }
 
 export function PostCard({ post }: { post: PostProps }) {
   const [isLiked, setIsLiked] = useState(post.isLiked || false);
   const [likes, setLikes] = useState(post.likes);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const toggleLike = () => {
-    if (isLiked) {
-      setLikes(likes - 1);
-      setIsLiked(false);
-    } else {
-      setLikes(likes + 1);
-      setIsLiked(true);
-      triggerDoubleTapAnimation();
+  const toggleLike = async () => {
+    const newLikedState = !isLiked;
+    const newLikesCount = newLikedState ? likes + 1 : likes - 1;
+    
+    // Optimistic update
+    setIsLiked(newLikedState);
+    setLikes(newLikesCount);
+    if (newLikedState) triggerDoubleTapAnimation();
+
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`/api/posts/${post.id}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isLiked: newLikedState, likes: newLikesCount })
+      });
+    } catch (err) {
+      console.error('Failed to sync like:', err);
+      // Revert on error
+      setIsLiked(!newLikedState);
+      setLikes(newLikesCount === likes + 1 ? likes : likes + 1);
+    }
+  };
+
+  const fetchComments = async () => {
+    if (showComments) {
+      setShowComments(false);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/posts/${post.id}/comments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data);
+        setShowComments(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch comments:', err);
+    }
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const username = localStorage.getItem('username');
+      const response = await fetch(`/api/posts/${post.id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username, text: newComment })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const freshComment: Comment = {
+          id: data.id,
+          username: username || 'anonymous',
+          text: newComment,
+          created_at: data.created_at
+        };
+        setComments([...comments, freshComment]);
+        setNewComment('');
+        if (!showComments) setShowComments(true);
+      }
+    } catch (err) {
+      console.error('Failed to post comment:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const onDoubleTap = () => {
     if (!isLiked) {
-      setLikes(likes + 1);
-      setIsLiked(true);
+      toggleLike();
+    } else {
+      triggerDoubleTapAnimation();
     }
-    triggerDoubleTapAnimation();
   };
 
   const triggerDoubleTapAnimation = () => {
@@ -86,7 +171,7 @@ export function PostCard({ post }: { post: PostProps }) {
             <button onClick={toggleLike} className="hover:scale-110 active:scale-90 transition-transform text-foreground hover:text-primary">
               <Heart className={`w-[26px] h-[26px] ${isLiked ? 'fill-primary text-primary' : ''}`} />
             </button>
-            <button className="hover:scale-110 active:scale-90 transition-transform text-foreground hover:text-primary">
+            <button onClick={fetchComments} className="hover:scale-110 active:scale-90 transition-transform text-foreground hover:text-primary">
               <MessageCircle className="w-[26px] h-[26px]" />
             </button>
             <button className="hover:scale-110 active:scale-90 transition-transform text-foreground hover:text-primary">
@@ -108,9 +193,43 @@ export function PostCard({ post }: { post: PostProps }) {
         </div>
 
         {/* Comments section preview */}
-        <button className="text-sm text-muted-foreground font-medium mb-2 hover:underline">
-          View all 42 comments
+        <button onClick={fetchComments} className="text-sm text-muted-foreground font-medium mb-2 hover:underline">
+          {showComments 
+            ? 'Hide comments' 
+            : `View all ${post.comment_count !== undefined ? post.comment_count : '...'} comments`
+          }
         </button>
+
+        {/* Real Comments list */}
+        {showComments && (
+          <div className="flex flex-col gap-2 mt-2 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            {comments.map((comment) => (
+              <div key={comment.id} className="text-sm">
+                <span className="font-bold mr-2">{comment.username}</span>
+                <span className="text-foreground/80">{comment.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Comment Input */}
+        <form onSubmit={handleAddComment} className="flex items-center gap-2 mt-2 border-t border-border/10 pt-3">
+          <input
+            type="text"
+            placeholder="Add a comment..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            disabled={isSubmitting}
+            className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground/50"
+          />
+          <button 
+            type="submit" 
+            disabled={!newComment.trim() || isSubmitting}
+            className="text-primary font-bold text-sm disabled:opacity-30 hover:text-primary/80 transition-colors"
+          >
+            Post
+          </button>
+        </form>
 
         <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-widest font-semibold">
           {post.timeAgo}

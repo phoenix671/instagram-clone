@@ -81,6 +81,13 @@ const initDb = async () => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        await pool.query(`CREATE TABLE IF NOT EXISTS stories (
+            id SERIAL PRIMARY KEY,
+            username TEXT,
+            userImage TEXT,
+            storyImage TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
         const { rows } = await pool.query("SELECT COUNT(*) as count FROM reels");
         if (parseInt(rows[0].count) === 0) {
             console.log("Adding starter Reels into the vault...");
@@ -244,6 +251,36 @@ app.post('/api/reels/new', authenticateToken, upload.single('media'), async (req
             [username, userImage, videoUrl, 0, caption]
         );
         res.json({ message: "Reel created successfully!", id: result.rows[0].id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route F: Get all active stories (last 24 hours)
+app.get('/api/stories', authenticateToken, async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            "SELECT * FROM stories WHERE created_at > NOW() - INTERVAL '24 hours' ORDER BY created_at DESC"
+        );
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Route G: Create a new story
+app.post('/api/stories/new', authenticateToken, upload.single('media'), async (req, res) => {
+    const { username, userImage } = req.body;
+    const storyImage = req.file ? req.file.path : null;
+
+    if (!storyImage) return res.status(400).json({ error: "Story image/video is required." });
+
+    try {
+        const result = await pool.query(
+            "INSERT INTO stories (username, userImage, storyImage) VALUES ($1, $2, $3) RETURNING id, created_at",
+            [username, userImage, storyImage]
+        );
+        res.json({ message: "Story shared successfully!", id: result.rows[0].id, created_at: result.rows[0].created_at });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

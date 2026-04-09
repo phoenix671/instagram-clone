@@ -1,7 +1,0 @@
-﻿src/components/feed/FeedView.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
-src/components/feed/PostCard.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
-src/components/feed/StoryViewer.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
-src/components/ui/dotted-surface.tsx(14,24): error TS2554: Expected 1 arguments, but got 0.
-src/components/ui/dotted-surface.tsx(55,9): error TS6133: 'particles' is declared but its value is never read.
-src/components/ui/particle-text-effect.tsx(138,24): error TS2554: Expected 1 arguments, but got 0.
-src/components/ui/particle-text-effect.tsx(141,9): error TS6133: 'wordIndexRef' is declared but its value is never read.

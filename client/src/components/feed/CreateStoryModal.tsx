@@ -1,40 +1,70 @@
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 
 interface CreateStoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStoryCreate: (imageUrl: string) => void;
+  onSuccess: () => void;
 }
 
-export function CreateStoryModal({ isOpen, onClose, onStoryCreate }: CreateStoryModalProps) {
+export function CreateStoryModal({ isOpen, onClose, onSuccess }: CreateStoryModalProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
+      setFile(selectedFile);
     }
   };
 
-  const handleShare = () => {
-    if (previewUrl) {
-      console.log('Faking upload for story image:', previewUrl);
-      onStoryCreate(previewUrl);
-      
-      // Reset
-      setPreviewUrl(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      onClose();
+  const handleShare = async () => {
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('media', file);
+    formData.append('username', localStorage.getItem('username') || 'anonymous');
+    formData.append('userImage', `https://ui-avatars.com/api/?name=${localStorage.getItem('username')}&background=random`);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/stories/new', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        setPreviewUrl(null);
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        onSuccess();
+        onClose();
+      } else {
+        const errorData = await response.json();
+        alert(`Upload failed: ${errorData.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to upload story:', err);
+      alert('Connection error. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleCancel = () => {
+    if (isUploading) return;
     setPreviewUrl(null);
+    setFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     onClose();
   };
@@ -50,12 +80,14 @@ export function CreateStoryModal({ isOpen, onClose, onStoryCreate }: CreateStory
           {previewUrl ? (
             <div className="relative w-full aspect-[9/16] max-h-[500px] bg-black rounded-lg overflow-hidden flex items-center justify-center">
               <img src={previewUrl} alt="Story Preview" className="max-w-full max-h-full object-contain" />
-              <button 
-                onClick={() => setPreviewUrl(null)}
-                className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/80 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
+              {!isUploading && (
+                <button 
+                  onClick={() => { setPreviewUrl(null); setFile(null); }}
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/80 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              )}
             </div>
           ) : (
             <div 
@@ -79,15 +111,20 @@ export function CreateStoryModal({ isOpen, onClose, onStoryCreate }: CreateStory
         </div>
 
         <DialogFooter className="sm:justify-between border-t border-white/10 pt-4">
-          <Button variant="ghost" className="text-gray-400 hover:text-white" onClick={handleCancel}>
+          <Button variant="ghost" className="text-gray-400 hover:text-white" onClick={handleCancel} disabled={isUploading}>
             Cancel
           </Button>
           <Button 
-            disabled={!previewUrl} 
+            disabled={!previewUrl || isUploading} 
             onClick={handleShare}
-            className="bg-gradient-to-r from-primary to-blue-500 font-bold"
+            className="bg-gradient-to-r from-primary to-blue-500 font-bold min-w-[120px]"
           >
-            Share to Story
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sharing...
+              </>
+            ) : 'Share to Story'}
           </Button>
         </DialogFooter>
       </DialogContent>
